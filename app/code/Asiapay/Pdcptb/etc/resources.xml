@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/resources.xsd">
+  <resource name="pdcptb_setup" extends="directory_setup"/>
+  <resource name="pdcptb_write" extends="local_write"/>
+  <resource name="pdcptb_read" extends="local_read"/>
+</config>
