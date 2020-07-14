@@ -21,7 +21,7 @@ This plugin supports Magento version 2.0 and higher.
  4. On the confirmation page, review your changes then click the “Confirm button”.
 
  ## Documentation
-[Magento documentation]()
+[Magento documentation](https://github.com/asiapay-lib/asiapay-Magento-2.x/blob/master/Magento2.0%20Payment%20Module%20Setup%20Guide.pdf)
 
 ## Support
 If you have a feature request, or spotted a bug or a technical problem, create a GitHub issue. For other questions, contact our [Customer Service](https://www.paydollar.com/en/contactus.html).
