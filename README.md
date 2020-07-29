@@ -1,8 +1,8 @@
-# PayDollar/SaimPay/PesoPay Payment plugin for Magento
-Use PayDollar/SaimPay/PesoPays plugin for Magento to offer ALL payments option.
+# PayDollar/SaimPay/PesoPay Payment plugin for Magento 2.X
+Use PayDollar/SaimPay/PesoPays plugin for Magento 2.X to offer ALL payments option.
 
 ## Integration
-The plugin integrates Magento with PayDollar/SaimPay/PesoPay payment gateway with All payment method.
+The plugin integrates Magento 2.X with PayDollar/SaimPay/PesoPay payment gateway with All payment method.
 
 ## Requirements
 This plugin supports Magento version 2.0 and higher.
