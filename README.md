@@ -1,8 +1,8 @@
-# PayDollar/SaimPay/PesoPay Payment plugin for Magento
-Use PayDollar/SaimPay/PesoPays plugin for Magento to offer ALL payments option.
+# PayDollar/SaimPay/PesoPay Payment plugin for Magento 2.X
+Use PayDollar/SaimPay/PesoPays plugin for Magento 2.X to offer ALL payments option.
 
 ## Integration
-The plugin integrates integrate Magento with PayDollar/SaimPay/PesoPay payment gateway with All payment method.
+The plugin integrates Magento 2.X with PayDollar/SaimPay/PesoPay payment gateway with All payment method.
 
 ## Requirements
 This plugin supports Magento version 2.0 and higher.
@@ -21,7 +21,7 @@ This plugin supports Magento version 2.0 and higher.
  4. On the confirmation page, review your changes then click the “Confirm button”.
 
  ## Documentation
-[Magento documentation](https://github.com/asiapay-lib/asiapay-Magento-2.x/blob/master/Magento2.0%20Payment%20Module%20Setup%20Guide.pdf)
+[Magento documentation](https://github.com/asiapay-lib/asiapay-Magento-2.x/raw/master/Magento2.0%20Payment%20Module%20Setup%20Guide.pdf)
 
 ## Support
 If you have a feature request, or spotted a bug or a technical problem, create a GitHub issue. For other questions, contact our [Customer Service](https://www.paydollar.com/en/contactus.html).
