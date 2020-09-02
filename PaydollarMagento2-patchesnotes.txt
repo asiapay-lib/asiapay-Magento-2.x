@@ -1,0 +1,17 @@
+Patches notes
+
+26/7 (V1.0) 	- Release Module for Magento 2.0
+
+29/7 (V1.1)	- Fix reorder button bugs with block files
+		- Fix query "update" process. (missing variable instances).
+ 		- Fix Failure process after checkout (missing variable instances)
+
+3/8 (V1.2) - Updated THB currency code
+
+22/8 (V1.2.1)- Removed Pending Payment class and fixed the config
+
+26/8 (V1.2.2)- Modified set up guide Datafeed URL
+
+07/12 (V1.2.3) - Updated set up guide: tested version
+
+07/01/2020 (V1.3.0) - added new parameters for the 3DS2.0

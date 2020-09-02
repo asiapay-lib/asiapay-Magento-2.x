@@ -101,8 +101,20 @@
 				<field id="api_username" translate="label" type="text" sortOrder="141" showInDefault="1" showInWebsite="1" showInStore="0">
 				<label>API Username: Assigned by PayDollar to merchant</label>
 				</field>
-				<field id="api_password" translate="label" type="text" sortOrder="142" showInDefault="1" showInWebsite="1" showInStore="0">
+				<field id="api_password" translate="label" type="text" sortOrder="142" showInDefault="1" showInWebsite="1" showInStore="1">
 				<label>API Password: Assigned by PayDollar to merchant</label>
+				</field>
+
+				<!-- 3DS2.0 Settings -->
+				
+				<field id="three_ds_transtype" translate="label" type="select" sortOrder="143" showInDefault="1" showInWebsite="1" showInStore="0">
+				<label>Transaction Type</label>
+				<source_model>Asiapay\Pdcptb\Model\Config\TransactionType</source_model>
+				</field>
+
+				<field id="three_ds_challenge_preference" translate="label" type="select" sortOrder="144" showInDefault="1" showInWebsite="1" showInStore="0">
+				<label>Challenge Preference</label>
+				<source_model>Asiapay\Pdcptb\Model\Config\ChallengePreference</source_model>
 				</field>
       </group>
     </section>
