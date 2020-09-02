@@ -34,6 +34,7 @@ class Pdcptb extends AbstractMethod
     protected $_eventObserver;    
     protected $_storeManager;
     protected $_urlInterface;
+    protected $orderRepository;
 
     public function __construct(Context $context, 
         Registry $registry, 
@@ -47,17 +48,22 @@ class Pdcptb extends AbstractMethod
         LayoutFactory $viewLayoutFactory, 
         AbstractResource $resource = null, 
         AbstractDb $resourceCollection = null, 
+        
         //StoreManagerInterface $storeManager,
         array $data = [])
     {
         $this->_modelOrder = $modelOrder;
         $this->_viewLayoutFactory = $viewLayoutFactory;
 		$this->_logger = $logger;
+		$this->_paymentData = $paymentData;
 		$this->_eventObserver = $eventObserver;
 		//$this->_storeManager=$storeManager;
 		$this->_urlInterface = \Magento\Framework\App\ObjectManager::getInstance()->get('Magento\Framework\UrlInterface');
 
+		$this->orderRepository = \Magento\Framework\App\ObjectManager::getInstance()->get('\Magento\Sales\Api\OrderRepositoryInterface');
+
         parent::__construct($context, $registry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $logger, $resource, $resourceCollection, $data);
+        
     }
 
     const CGI_URL = 'https://www.paydollar.com/b2c2/eng/payment/payForm.jsp';
@@ -169,10 +175,81 @@ class Pdcptb extends AbstractMethod
 		$memberpay_service = $this->getConfigData('memberpay');
 		$memberpay_memberid = '';
 		$memberPay_email = '';
+		$customer_acctAgeInd = "01";
+		$customer_acctAuthMethod = "01"; // as guest
+		$customer_acctAuthDate = "";
+
+		//3ds2.0 shipping for both guest and login customer
+
+
+		$shipData = $this->getCustomerShippingData();
+		$customer_ship_phonenum = $customer_bill_phonenum = $shipData['telephone'];
+		$customer_bill_phonenum = preg_replace('/\D/', '', $customer_bill_phonenum);
+		$customer_ship_email = $shipData['email'];
+		$customer_ship_countryID = $customer_bill_countryID = $shipData['country_id'];
+		$customer_ship_countryCode = $customer_bill_countryCode = $customer_bill_phonecountryCode = ObjectManager::getInstance()->get('Asiapay\Pdcptb\Helper\Data')->getCountryCodeNumeric($customer_ship_countryID);
+		$customer_ship_street = (is_array($shipData['street']))? $shipData['street']:explode("\n", $shipData['street']);
+		$customer_ship_street0 = $customer_bill_street0 = trim((array_key_exists(0, $customer_ship_street))?$customer_ship_street[0]:'');	
+		$customer_ship_street1 = $customer_bill_street1 = trim((array_key_exists(1, $customer_ship_street))?$customer_ship_street[1]:'');	
+		$customer_ship_street2 = $customer_bill_street2 = trim((array_key_exists(2, $customer_ship_street))?$customer_ship_street[2]:'');
+		$customer_city = $customer_bill_city = $shipData['city'];
+		$customer_postcode = $shipData['postcode'];
+
 		if (/*Mage::app()->isInstalled() && */ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->isLoggedIn()) {            
 			$memberpay_memberid = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getEmail();
 			$memberPay_email = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getEmail();
+
+			//billing address
+
+			$customer_bill_phonenum = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryBillingAddress()->getTelephone();
+			$customer_bill_phonenum = preg_replace('/\D/', '', $customer_bill_phonenum);
+			$customer_bill_countryID = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryBillingAddress()->getCountryId();
+			$customer_bill_phonecountryCode = ObjectManager::getInstance()->get('Asiapay\Pdcptb\Helper\Data')->getphonecode($customer_bill_countryID);
+			$customer_bill_countryCode = ObjectManager::getInstance()->get('Asiapay\Pdcptb\Helper\Data')->getCountryCodeNumeric($customer_bill_countryID);
+			$customer_bill_street = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryBillingAddress()->getStreet();
+
+			$customer_bill_street0 = (array_key_exists(0, $customer_bill_street))?$customer_bill_street[0]:'';	
+			$customer_bill_street1 = (array_key_exists(1, $customer_bill_street))?$customer_bill_street[1]:'';	
+			$customer_bill_street2 = (array_key_exists(2, $customer_bill_street))?$customer_bill_street[2]:'';	
+			$customer_bill_city = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryBillingAddress()->getCity();
+			$customer_postcode = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryBillingAddress()->getPostcode();
+
+			//account info related
+			$customer_acct_createdate = date('Ymd' ,ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getCreatedAtTimestamp());
+		
+			$customer_daydiff = $this->getDateDiff($customer_acct_createdate);
+
+			$customer_acct_ageind =$this->getAcctAgeInd($customer_daydiff);
+
+			$diffAdd = $this->getDiffBillShipAddress();
+
+			if($diffAdd == "T")
+				$shippingDetl = "01"; // Ship to cardholder’s billing address
+			else
+				$shippingDetl = "03"; // Ship to address that is different than the cardholder’s billing address
+
+			$countOrder = $this->getCustomerAllOrdersComplete();
+			$countOrderAnyDay = $this->getCustomerAllOrdersAllStatus("day");
+			$countOrderAnyYear = $this->getCustomerAllOrdersAllStatus("year");
+			$customer_acctAuthMethod = "02"; // Login to the cardholder account at the merchant system using merchant‘s own credentials
+
+			$authdate = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getData('updated_at');
+			// $customer_acctAuthDate = gmdate("Ymd H:i:s", time());
+
+			$customer_acctAuthDate = gmdate("Ymd" , strtotime($authdate));
+			// $this->getCustomerData();
+        }else{
+        	$diffAdd = "T";
+        	$shippingDetl = "01";// Ship to cardholder’s billing address
+        	$customer_acct_createdate = $customer_acct_ageind = $countOrder = $countOrderAnyDay = $countOrderAnyYear = "";
         }
+
+
+        
+
+        $txnType = $this->getConfigData('three_ds_transtype');
+
+        $threedschallengepref = $this->getConfigData('three_ds_challenge_preference');
         //echo $memberPay_email;
 		/* memberpay end */
 
@@ -196,10 +273,90 @@ class Pdcptb extends AbstractMethod
 			'memberPay_service'			=> $memberpay_service,
 			'memberPay_memberId'		=> $memberpay_memberid,
 			'memberPay_email'			=> $memberPay_email,
-			'failRetry'					=> 'no'
+			'failRetry'					=> 'no',
+
+
+			//for 3ds2.0
+			//Basic Parameters Customer Info
+			'threeDSTransType'				=> $txnType,
+			'threeDSCustomerEmail'			=> $memberPay_email,
+			'threeDSMobilePhoneCountryCode' => $customer_bill_phonecountryCode,
+			'threeDSMobilePhoneNumber' 		=> $customer_bill_phonenum,
+			'threeDSHomePhoneCountryCode'	=> $customer_bill_phonecountryCode,
+			'threeDSHomePhoneNumber'		=> $customer_bill_phonenum,
+			'threeDSWorkPhoneCountryCode' 	=> $customer_bill_phonecountryCode,
+			'threeDSWorkPhoneNumber'		=> $customer_bill_phonenum,
+			'threeDSIsFirstTimeItemOrder'	=> '',
+			'threeDSChallengePreference'	=> $threedschallengepref,
+
+			//recurring payment related
+			'threeDSRecurringFrequency'		=>'',
+			'threeDSRecurringExpiry'		=>'',
+
+			//Billing address related
+			'threeDSBillingCountryCode'		=> $customer_bill_countryCode,
+			'threeDSBillingState'			=> $customer_bill_countryID,
+			'threeDSBillingCity' 			=> $customer_bill_city,
+			'threeDSBillingLine1' 			=> $customer_bill_street0,
+			'threeDSBillingLine2'			=> $customer_bill_street1,
+			'threeDSBillingLine3'			=> $customer_bill_street2,
+			'threeDSBillingPostalCode' 		=> $customer_postcode,
+
+			//Shipping / Delivery Related
+			'threeDSDeliveryTime'			=> '',
+			'threeDSDeliveryEmail'			=> $customer_ship_email,
+			'threeDSShippingDetails' 		=> $shippingDetl,
+			'threeDSShippingCountryCode' 	=> $customer_ship_countryCode,
+			'threeDSShippingCity'			=> $customer_city,
+			'threeDSShippingLine1'			=> $customer_ship_street0,
+			'threeDSShippingLine2' 			=> $customer_ship_street1,
+			'threeDSShippingLine3'			=> $customer_ship_street2,
+			'threeDSShippingPostalCode'		=> $customer_postcode,
+			'threeDSIsAddrMatch'			=> $diffAdd,
+
+
+			//Gift Card / Prepaid Card Purchase Related
+			'threeDSGiftCardAmount'			=> '',
+			'threeDSGiftCardCurr'			=> '',
+			'threeDSGiftCardCount'			=> '',
+
+
+			//Pre-Order Purchase Related
+			'threeDSPreOrderReason'			=> '',
+			'threeDSPreOrderReadyDate'		=> '',
+
+			//Account Info Related
+			'threeDSAcctCreateDate'					=> $customer_acct_createdate,
+			'threeDSAcctAgeInd'						=> $customer_acct_ageind,
+			'threeDSAcctLastChangeDate' 			=> '',
+			'threeDSAcctLastChangeInd' 				=> '',
+			'threeDSAcctPwChangeDate'				=> '',
+			'threeDSAcctPwChangeInd'				=> '',
+			'threeDSAcctPurchaseCount' 				=> $countOrder,
+			'threeDSAcctCardProvisionAttempt'		=> '',
+			'threeDSAcctNumTransDay'				=> $countOrderAnyDay,
+			'threeDSAcctNumTransYear'				=> $countOrderAnyYear,
+			'threeDSAcctPaymentAcctDate' 			=> '',
+			'threeDSAcctPaymentAcctInd' 			=> '',
+			'threeDSAcctShippingAddrLastChangeDate'	=> '',
+			'threeDSAcctShippingAddrLastChangeInd'	=> '',
+			'threeDSAcctIsShippingAcctNameSame'		=> '',
+			'threeDSAcctIsSuspiciousAcct'			=> '',
+
+			//Account Authentication Info Related
+			'threeDSAcctAuthMethod'			=> $customer_acctAuthMethod,
+			'threeDSAcctAuthTimestamp'		=> $customer_acctAuthDate,
+
+			//Pay Token Related 
+			'threeDSPayTokenInd'			=> '',
 				
 		];
 
+
+		// echo "<pre>";
+		
+		// print_r($fields);
+		
 		// Run through fields and replace any occurrences of & with the word 
 		// 'and', as having an ampersand present will conflict with the HTTP
 		// request.
@@ -208,7 +365,8 @@ class Pdcptb extends AbstractMethod
             $value = str_replace("&","and",$v);
             $filtered_fields[$k] =  $value;
         }
-        
+        // echo $this->getUrl()."?".http_build_query($filtered_fields);
+        // exit;
         return $filtered_fields;
 	}
 
@@ -342,4 +500,159 @@ class Pdcptb extends AbstractMethod
     {
           return Pdcptb::getUrl('pdcptb/pdcptb/sss');
     }
+
+    public function getDateDiff($d){
+    		$datenow = date('Ymd');
+			$dt1 = new \DateTime($datenow);
+			$dt2 = new \DateTime($d);
+			$interval = $dt1->diff($dt2)->format('%a');
+			return $interval;
+    }
+
+    public function getAcctAgeInd($d){
+    	switch ($d) {
+    		case 0:
+    			# code...
+    			$ret = "02";
+    			break;
+    		case $d<30:
+    			# code...
+    			$ret = "03";
+    			break;
+    		case $d>30 && $d<60:
+    			# code...
+    			$ret = "04";
+    			break;
+    		case $d>60:
+    			$ret = "05"	;
+				break;	
+    		default:
+    			# code...
+    			break;
+    	}
+    	return $ret;
+
+    }
+
+    public function getDiffBillShipAddress(){
+    		$txtRet = "F";
+
+    		$shipData = $this->getCustomerShippingData();
+
+			$customer_ship_countryCode = ObjectManager::getInstance()->get('Asiapay\Pdcptb\Helper\Data')->getCountryCodeNumeric($shipData['country_id']);
+
+			$customer_ship_street = (is_array($shipData['street']))? $shipData['street']:explode("\n", $shipData['street']);
+
+			$customer_ship_street0 = (array_key_exists(0, $customer_ship_street))?$customer_ship_street[0]:'';	
+
+			$customer_ship_street1 = (array_key_exists(1, $customer_ship_street))?$customer_ship_street[1]:'';	
+						
+			$customer_ship_street2 = (array_key_exists(2, $customer_ship_street))?$customer_ship_street[2]:'';
+
+
+    		$b1 = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getDefaultBillingAddress()->getStreet();
+
+    		$b2 = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getDefaultShippingAddress()->getCity();
+
+			$b3 = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getDefaultShippingAddress()->getPostcode();
+
+    		$s1 = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getDefaultShippingAddress()->getStreet();
+
+    		$s2 = $shipData['city'];
+
+			$s3 = $shipData['postcode'];
+
+			if($b1 == $s1 && $b2 == $s2 && $b3 == $s3){
+				$txtRet = "T";
+			}
+
+			return $txtRet;
+
+    }
+
+
+    public function getCustomerAllOrdersComplete(){
+    	$customerId = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getId();
+    	// echo $customerId;
+    	$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+		$lastyear = date('Y-m-d', strtotime("-6 months"));
+		$orderCollection = $objectManager->create('\Magento\Sales\Model\ResourceModel\Order\Collection');
+		$orderCollection->addAttributeToFilter('customer_id',$customerId)
+			        ->addAttributeToFilter('status','complete')
+			        ->addAttributeToFilter('created_at', array('gteq'  => $lastyear))->load();
+    
+		return count($orderCollection->getData());
+
+    }
+
+    public function getCustomerAllOrdersAllStatus($dy){
+    	$customerId = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getId();
+		$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
+
+    	$lastdayyear = date('Y-m-d', strtotime("-1 $dy"));
+
+		$orderCollection = $objectManager->create('\Magento\Sales\Model\ResourceModel\Order\Collection');
+		$orderCollection->addAttributeToFilter('customer_id',$customerId)
+			        ->addAttributeToFilter('created_at', array('gteq'  => $lastdayyear))->load();
+
+		return count($orderCollection->getData());
+    }
+
+
+    public function getCustomerShippingData(){
+    	$shipping_data = array();
+    	$order = $this->_modelOrder;
+		$order->loadByIncrementId($this->getCheckout()->getLastRealOrderId());
+		$order_information = $order->loadByIncrementId($this->getCheckout()->getLastRealOrderId());
+		$a = $order_information->getShippingAddress();
+		// print_r($a);
+		// echo count($a);
+		if($a){
+			// echo 1;
+			$shipping_data = $a->getData();
+		}else{
+			// echo 123;
+			$shipping_data['telephone'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryShippingAddress()->getTelephone();
+
+			$shipping_data['country_id'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryShippingAddress()->getCountryId();
+			$customer_ship_countryCode = ObjectManager::getInstance()->get('Asiapay\Pdcptb\Helper\Data')->getCountryCodeNumeric($shipping_data['country_id']);
+
+			$shipping_data['street'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getDefaultShippingAddress()->getStreet();
+			
+			$arrSt = $shipping_data['street'];
+
+			// print_r($arrSt);
+
+			$customer_ship_street0 = (array_key_exists(0, $arrSt))?$arrSt[0]:'';	
+
+			$customer_ship_street1 = (array_key_exists(1, $arrSt))?$arrSt[1]:'';	
+						
+			$customer_ship_street2 = (array_key_exists(2, $arrSt))?$arrSt[2]:'';
+
+			$shipping_data['city'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryShippingAddress()->getCity();
+
+			$shipping_data['postcode'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryShippingAddress()->getPostcode();
+
+			$shipping_data['email'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getEmail();
+		}
+		// if()
+		// $shipping_data = $order_information->getShippingAddress()->getData();
+		// echo "<pre>";
+		// 		print_r($shipping_data);
+		return $shipping_data;
+    }
+
+    public function getCustomerData(){
+    	$customerData = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getData();
+    	echo "<pre>";
+    	print_r($customerData);
+    	// print_r($customer->getData('updated_at'));
+		// $logCustomer = ObjectManager::getInstance()->get('Magento\Customer\Model\log')->loadByCustomer($customer);
+		// $lastVisited = $logCustomer->getLoginAtTimestamp();
+		// $lastVisited = date('Y-m-d H:i:s', $lastVisited);
+		// echo $lastVisited;
+		// return $customerData->getData('updated_at');
+    }
+
+
 }
