@@ -6,7 +6,11 @@
 
 namespace Asiapay\Pdcptb\Controller\Datafeed;
 
-abstract class AbstractDatafeed extends \Magento\Framework\App\Action\Action
+use Magento\Framework\App\CsrfAwareActionInterface;
+use Magento\Framework\App\Request\InvalidRequestException;
+use Magento\Framework\App\RequestInterface;
+
+abstract class AbstractDatafeed extends \Magento\Framework\App\Action\Action implements CsrfAwareActionInterface
 {
     /**
      * @var \Magento\Framework\View\LayoutFactory
@@ -20,6 +24,23 @@ abstract class AbstractDatafeed extends \Magento\Framework\App\Action\Action
 		$this->_viewLayoutFactory = $viewLayoutFactory;
         //parent::__construct($viewLayoutFactory);
     }
+	
+	/** 
+	 * @inheritDoc
+	 */
+	public function createCsrfValidationException(
+		RequestInterface $request 
+	): ?InvalidRequestException {
+		return null;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function validateForCsrf(RequestInterface $request): ?bool
+	{
+		return true;
+	}
 
 	 
     protected $_viewLayoutFactory;

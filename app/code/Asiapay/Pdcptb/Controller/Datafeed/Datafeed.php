@@ -133,7 +133,14 @@ class Datafeed extends AbstractDatafeed
 		//$store_id = $order_object->getData('store_id');
 		//$store_id = $order_object->getStoreId();
 		//echo "orderId:".$orderId;
-		$payment_method = $order_object->getPayment()->getMethodInstance();
+		$secureHashSecret = "";
+		if(!empty($orderNumber)){
+			$payment_method = $order_object->getPayment()->getMethodInstance();
+			$secureHashSecret = $payment_method->getConfigData('secure_hash_secret');
+		}else{
+			exit;
+		}
+		
 		$dbCurrency = $order_object->getBaseCurrencyCode();
 		/* convert currency type into numerical ISO code start*/
 
@@ -147,10 +154,11 @@ class Datafeed extends AbstractDatafeed
 
 
 		//$secureHashSecret = $payment_method->getConfigData('secure_hash_secret',$store_id);
-		$secureHashSecret = $payment_method->getConfigData('secure_hash_secret');
+		
 		if(trim($secureHashSecret) != ""){	
 			$secureHashs = explode ( ',', $secureHash );
-			while ( list ( $key, $value ) = each ( $secureHashs ) ) {
+			// while ( list ( $key, $value ) = each ( $secureHashs ) ) {
+			foreach($secureHashs as $key => $value) {
 				$verifyResult = $this->_verifyPaymentDatafeed($src, $prc, $successCode, $ref, $payRef, $cur, $amt, $payerAuth, $secureHashSecret, $value);
 				if ($verifyResult) {
 					break ;
