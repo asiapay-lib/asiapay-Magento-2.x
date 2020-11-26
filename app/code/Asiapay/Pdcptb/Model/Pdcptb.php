@@ -278,41 +278,41 @@ class Pdcptb extends AbstractMethod
 
 			//for 3ds2.0
 			//Basic Parameters Customer Info
-			'threeDSTransType'				=> $txnType,
-			'threeDSCustomerEmail'			=> $memberPay_email,
-			'threeDSMobilePhoneCountryCode' => $customer_bill_phonecountryCode,
-			'threeDSMobilePhoneNumber' 		=> $customer_bill_phonenum,
-			'threeDSHomePhoneCountryCode'	=> $customer_bill_phonecountryCode,
-			'threeDSHomePhoneNumber'		=> $customer_bill_phonenum,
-			'threeDSWorkPhoneCountryCode' 	=> $customer_bill_phonecountryCode,
-			'threeDSWorkPhoneNumber'		=> $customer_bill_phonenum,
+			'threeDSTransType'				=> isset($txnType)&&($txnType)?$txnType:"",
+			'threeDSCustomerEmail'			=> isset($memberPay_email)&&($memberPay_email)?$memberPay_email:"",
+			'threeDSMobilePhoneCountryCode' => isset($customer_bill_phonecountryCode)&&($customer_bill_phonecountryCode)?$customer_bill_phonecountryCode:"",
+			'threeDSMobilePhoneNumber' 		=> isset($customer_bill_phonenum)&&($customer_bill_phonenum)?$customer_bill_phonenum:"",
+			'threeDSHomePhoneCountryCode'	=> isset($customer_bill_phonecountryCode)&&($customer_bill_phonecountryCode)?$customer_bill_phonecountryCode:"",
+			'threeDSHomePhoneNumber'		=> isset($customer_bill_phonenum)&&($customer_bill_phonenum)?$customer_bill_phonenum:"",
+			'threeDSWorkPhoneCountryCode' 	=> isset($customer_bill_phonecountryCode)&&($customer_bill_phonecountryCode)?$customer_bill_phonecountryCode:"",
+			'threeDSWorkPhoneNumber'		=> isset($customer_bill_phonenum)&&($customer_bill_phonenum)?$customer_bill_phonenum:"",
 			'threeDSIsFirstTimeItemOrder'	=> '',
-			'threeDSChallengePreference'	=> $threedschallengepref,
+			'threeDSChallengePreference'	=> isset($threedschallengepref)&&($threedschallengepref)?$threedschallengepref:"",
 
 			//recurring payment related
 			'threeDSRecurringFrequency'		=>'',
 			'threeDSRecurringExpiry'		=>'',
 
 			//Billing address related
-			'threeDSBillingCountryCode'		=> $customer_bill_countryCode,
-			'threeDSBillingState'			=> $customer_bill_countryID,
-			'threeDSBillingCity' 			=> $customer_bill_city,
-			'threeDSBillingLine1' 			=> $customer_bill_street0,
-			'threeDSBillingLine2'			=> $customer_bill_street1,
-			'threeDSBillingLine3'			=> $customer_bill_street2,
-			'threeDSBillingPostalCode' 		=> $customer_postcode,
+			'threeDSBillingCountryCode'		=> isset($customer_bill_countryCode)&&($customer_bill_countryCode)?$customer_bill_countryCode:"",
+			'threeDSBillingState'			=> isset($customer_bill_countryID)&&($customer_bill_countryID)?$customer_bill_countryID:"",
+			'threeDSBillingCity' 			=> isset($customer_bill_city)&&($customer_bill_city)?$customer_bill_city:"",
+			'threeDSBillingLine1' 			=> isset($customer_bill_street0)&&($customer_bill_street0)?$customer_bill_street0:"",
+			'threeDSBillingLine2'			=> isset($customer_bill_street1)&&($customer_bill_street1)?$customer_bill_street1:"",
+			'threeDSBillingLine3'			=> isset($customer_bill_street2)&&($customer_bill_street2)?$customer_bill_street2:"",
+			'threeDSBillingPostalCode' 		=> isset($customer_postcode)&&($customer_postcode)?$customer_postcode:"",
 
 			//Shipping / Delivery Related
 			'threeDSDeliveryTime'			=> '',
-			'threeDSDeliveryEmail'			=> $customer_ship_email,
-			'threeDSShippingDetails' 		=> $shippingDetl,
-			'threeDSShippingCountryCode' 	=> $customer_ship_countryCode,
-			'threeDSShippingCity'			=> $customer_city,
-			'threeDSShippingLine1'			=> $customer_ship_street0,
-			'threeDSShippingLine2' 			=> $customer_ship_street1,
-			'threeDSShippingLine3'			=> $customer_ship_street2,
-			'threeDSShippingPostalCode'		=> $customer_postcode,
-			'threeDSIsAddrMatch'			=> $diffAdd,
+			'threeDSDeliveryEmail'			=> isset($customer_ship_email)&&($customer_ship_email)?$customer_ship_email:"",
+			'threeDSShippingDetails' 		=> isset($shippingDetl)&&($shippingDetl)?$shippingDetl:"",
+			'threeDSShippingCountryCode' 	=> isset($customer_ship_countryCode)&&($customer_ship_countryCode)?$customer_ship_countryCode:"",
+			'threeDSShippingCity'			=> isset($customer_city)&&($customer_city)?$customer_city:"",
+			'threeDSShippingLine1'			=> isset($customer_ship_street0)&&($customer_ship_street0)?$customer_ship_street0:"",
+			'threeDSShippingLine2' 			=> isset($customer_ship_street1)&&($customer_ship_street1)?$customer_ship_street1:"",
+			'threeDSShippingLine3'			=> isset($customer_ship_street2)&&($customer_ship_street2)?$customer_ship_street2:"",
+			'threeDSShippingPostalCode'		=> isset($customer_postcode)&&($customer_postcode)?$customer_postcode:"",
+			'threeDSIsAddrMatch'			=> isset($diffAdd)&&($diffAdd)?$diffAdd:"",
 
 
 			//Gift Card / Prepaid Card Purchase Related
@@ -326,16 +326,16 @@ class Pdcptb extends AbstractMethod
 			'threeDSPreOrderReadyDate'		=> '',
 
 			//Account Info Related
-			'threeDSAcctCreateDate'					=> $customer_acct_createdate,
-			'threeDSAcctAgeInd'						=> $customer_acct_ageind,
+			'threeDSAcctCreateDate'					=> isset($customer_acct_createdate)&&($customer_acct_createdate)?$customer_acct_createdate:"",
+			'threeDSAcctAgeInd'						=> isset($customer_acct_ageind)&&($customer_acct_ageind)?$customer_acct_ageind:"",
 			'threeDSAcctLastChangeDate' 			=> '',
 			'threeDSAcctLastChangeInd' 				=> '',
 			'threeDSAcctPwChangeDate'				=> '',
 			'threeDSAcctPwChangeInd'				=> '',
-			'threeDSAcctPurchaseCount' 				=> $countOrder,
+			'threeDSAcctPurchaseCount' 				=> isset($countOrder)&&($countOrder)?$countOrder:"",
 			'threeDSAcctCardProvisionAttempt'		=> '',
-			'threeDSAcctNumTransDay'				=> $countOrderAnyDay,
-			'threeDSAcctNumTransYear'				=> $countOrderAnyYear,
+			'threeDSAcctNumTransDay'				=> isset($countOrderAnyDay)&&($countOrderAnyDay)?$countOrderAnyDay:"",
+			'threeDSAcctNumTransYear'				=> isset($countOrderAnyYear)&&($countOrderAnyYear)?$countOrderAnyYear:"",
 			'threeDSAcctPaymentAcctDate' 			=> '',
 			'threeDSAcctPaymentAcctInd' 			=> '',
 			'threeDSAcctShippingAddrLastChangeDate'	=> '',
@@ -344,8 +344,8 @@ class Pdcptb extends AbstractMethod
 			'threeDSAcctIsSuspiciousAcct'			=> '',
 
 			//Account Authentication Info Related
-			'threeDSAcctAuthMethod'			=> $customer_acctAuthMethod,
-			'threeDSAcctAuthTimestamp'		=> $customer_acctAuthDate,
+			'threeDSAcctAuthMethod'			=> isset($customer_acctAuthMethod)&&($customer_acctAuthMethod)?$customer_acctAuthMethod:"",
+			'threeDSAcctAuthTimestamp'		=> isset($customer_acctAuthDate)&&($customer_acctAuthDate)?$customer_acctAuthDate:"",
 
 			//Pay Token Related 
 			'threeDSPayTokenInd'			=> '',
