@@ -14,6 +14,11 @@ This plugin supports Magento version 2.0 and higher.
 1.	Upload the paydollar plugin to the Magento correct folder structure using an FTP client.
 2.	After  installation,  go  to  the  admin  side  of  the  store  and  log-in,  then  go  to  ***Store -> Configurations -> Advanced -> Advanced***
 3.	Ensure that the module **'Asiapay_Pdcptb'** is enabled.
+
+#### From **Magento 2.2.***, Advanced Menu is no longer available from step 2 and 3 of installation.
+* Go to the admin side of the store and log-in, then go to ***System -> Web Setup Wizard -> Module Manager***
+* Ensure that the component name **'Asiapay_Pdcptb'** is enabled in the action tab.
+
 4.	Then go to ***Store -> Configurations -> Sales -> "Payment Methods"*** then expand the **“AsiaPay's PayDollar - Client Post Through Browser Module”** then configure the values accordingly then save changes. 
 5.	Set the module configurations
 
