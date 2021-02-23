@@ -72,7 +72,7 @@ class Pdcptb extends AbstractMethod
 
     protected $_code  = 'pdcptb';
     protected $_formBlockType = 'Asiapay\Pdcptb\Block\PdcptbForm';
-    protected $_allowCurrencyCode = ['HKD','USD','SGD','CNY','JPY','TWD','AUD','EUR','GBP','CAD','MOP','PHP','THB','MYR','IDR','KRW','SAR','NZD','AED','BND'];
+    protected $_allowCurrencyCode = ['HKD','USD','SGD','CNY','JPY','TWD','AUD','EUR','GBP','CAD','MOP','PHP','THB','MYR','IDR','KRW','SAR','NZD','AED','BND','VND'];
     
 	public function getUrl()
     {
@@ -113,6 +113,63 @@ class Pdcptb extends AbstractMethod
     {
         return $this->getCheckout()->getQuote();
     }
+
+    public function retrieveLocale() {
+		/** @var \Magento\Framework\ObjectManagerInterface $om */
+		$om = \Magento\Framework\App\ObjectManager::getInstance();
+		/** @var \Magento\Framework\Locale\Resolver $resolver */
+		$resolver = $om->get('Magento\Framework\Locale\Resolver');
+		$templang = $resolver->getLocale();
+		
+		//output to text file to check language code
+			// $file = fopen("test.txt","w");
+			// echo fwrite($file, $templang);
+			// fclose($file);
+		//Returns language code for PayDollar/PesoPay/SiamPay
+		//Chinese - Simplified
+		if($templang == 'zh_Hans_CN'){
+			return 'X';
+		}
+		//Japanese
+		else if($templang == 'ja_JP'){
+			return 'J';
+		}
+		//Korean
+		else if($templang == 'ko_KR'){
+			return 'K';
+		}
+		//Chinese - Traditional
+		else if($templang == 'zh_Hant_HK' || $templang == 'zh_Hant_TW' || $templang == 'zh_TW' ){
+			return 'C';
+		}
+		//Thai
+		else if($templang == 'th_TH'){
+			return 'T';
+		}
+		//German
+		else if($templang == 'de_DE'){
+			return 'G';
+		}
+		//French
+		else if($templang == 'fr_FR'){
+			return 'F';
+		}
+		//Russian
+		else if($templang == 'ru_RU'){
+			return 'R';
+		}
+		//Vietnamese
+		else if($templang == 'vi_VN'){
+			return 'V';
+		}	
+		//Spanish
+		else if($templang == 'es_ES'){
+			return 'S';
+		}
+		else
+		//English for other countries
+			return 'E';
+	}
     
     public function getCheckoutFormFields()
 	{
@@ -144,11 +201,19 @@ class Pdcptb extends AbstractMethod
 		
 		$gatewayLanguage = substr($this->getConfigData('gateway_language'), 0, 1);
 		
-		if (preg_match("/^[CEXKJcexkj]/", $gatewayLanguage, $matches)){
-			$lang = strtoupper($matches[0]);
-		}else{
-			$lang = 'C';
+		$gatewayLanguage = preg_replace('/\s+/', '', $gatewayLanguage);
+		
+		if(empty($gatewayLanguage)){
+			$lang = $this->retrieveLocale();
 		}
+		else{
+			if (preg_match("/^[TGFRVSCEXKJcexkjtgfrvs]/", $gatewayLanguage, $matches)){
+				$lang = strtoupper($matches[0]);
+			}else{
+				$lang = 'C';
+			}
+		}
+
 		$orderReferencePrefix = trim($this->getConfigData('order_reference_no_prefix'));
 		
 		if (is_null($orderReferencePrefix) || $orderReferencePrefix == ''){
