@@ -111,7 +111,7 @@ class Pdcptb extends AbstractMethod
         return $this->getCheckout()->getQuote();
     }
 
-	public function retrieveLocale() {
+    public function retrieveLocale() {
 		/** @var \Magento\Framework\ObjectManagerInterface $om */
 		$om = \Magento\Framework\App\ObjectManager::getInstance();
 		/** @var \Magento\Framework\Locale\Resolver $resolver */
