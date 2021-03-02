@@ -1,11 +1,18 @@
-<?php
+<form action="<?php echo $block->getData('pay_url'); ?>" method="post" id="paydollar_payment_form">
+<?php 
 
+	$paydollar_args_array = array();
+	$paydollar_args = $block->getData('pay_data');
+	foreach($paydollar_args as $key => $value){
+		$paydollar_args_array[] = "<input type='hidden' name='$key' value='$value'/>";
+	}
+	
+	echo implode('', $paydollar_args_array);
 ?>
-<fieldset class="form-list">
-    <?php $_code=$this->getMethodCode() ?>
-    <ul id="payment_form_<?php echo $_code ?>" style="display:none">
-        <li>
-            <?php echo __('You will be redirected to a secure payment page.') ?>
-        </li>
-    </ul>
-</fieldset>
+</form>
+<script type="text/javascript">
+function paydollar1_payment_form(){
+	document.getElementById("paydollar_payment_form").submit();
+}												
+setTimeout(function(){paydollar1_payment_form();}, 0);
+</script>

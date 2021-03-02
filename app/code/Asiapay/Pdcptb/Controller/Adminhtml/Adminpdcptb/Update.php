@@ -19,16 +19,19 @@ class Update extends AbstractAdminpdcptb
 {
 	protected $viewLayoutFactory;
 
+	protected $_logLoggerInterface;
 	
     public function __construct(Http $request,
         Context $context, 
-        LayoutFactory $viewLayoutFactory
+		LayoutFactory $viewLayoutFactory,
+		LoggerInterface $logger
 		)
     {
     	$this->request = $request;
 
         $this->viewLayoutFactory = $viewLayoutFactory;
 		
+		$this->_logLoggerInterface = $logger;
 
         //parent::__construct( $context, $viewLayoutFactory);
 		parent::__construct( $context,$viewLayoutFactory);
@@ -111,7 +114,8 @@ class Update extends AbstractAdminpdcptb
 						try {
 							//update order status to processing
 							$comment = "Payment was Accepted. Payment Ref: " . $payRef ;
-							$order_object->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)->save(); 
+							$order_object->setState(\Magento\Sales\Model\Order::STATE_PROCESSING); 
+							$order_object->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING);
 							$order_object->addStatusToHistory(\Magento\Sales\Model\Order::STATE_PROCESSING, $comment, true)->save();
 							$orderCommentSender = $objectManager->create('Magento\Sales\Model\Order\Email\Sender\OrderCommentSender');
     						$orderCommentSender->send($order_object, $notify='1' , $comment);// $comment yout comment
@@ -158,13 +162,13 @@ class Update extends AbstractAdminpdcptb
 							}else{
 								//$this->_logLoggerInterface->debug(__('Cannot Invoice'));
 							}
-							}catch(Exception $e){
+							}catch(\Exception $e){
 								$this->_logLoggerInterface->error($e);
 							}
 							
 							
 						}
-						catch (Exception $e) {
+						catch (\Exception $e) {
 							$error = $e;
 							//print_r($e);
 							$this->_logLoggerInterface->debug($error);

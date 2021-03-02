@@ -7,7 +7,11 @@
  */
 namespace Asiapay\Pdcptb\Controller\Pdcptb;
 
-abstract class AbstractPdcptb extends \Magento\Framework\App\Action\Action
+use Magento\Framework\App\CsrfAwareActionInterface;
+use Magento\Framework\App\Request\InvalidRequestException;
+use Magento\Framework\App\RequestInterface;
+
+abstract class AbstractPdcptb extends \Magento\Framework\App\Action\Action implements CsrfAwareActionInterface
 {
 
     public function __construct(\Magento\Framework\App\Action\Context $context)
@@ -16,6 +20,23 @@ abstract class AbstractPdcptb extends \Magento\Framework\App\Action\Action
 
         parent::__construct($context);
     }
+
+    /** 
+	 * @inheritDoc
+	 */
+	public function createCsrfValidationException(
+		RequestInterface $request 
+	): ?InvalidRequestException {
+		return null;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function validateForCsrf(RequestInterface $request): ?bool
+	{
+		return true;
+	}
 
 	const PARAM_NAME_REJECT_URL = 'reject_url';
 	
