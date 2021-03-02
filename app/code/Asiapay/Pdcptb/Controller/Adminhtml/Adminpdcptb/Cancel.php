@@ -11,7 +11,8 @@ use Magento\Framework\App\ObjectManager;
 class Cancel extends AbstractAdminpdcptb
 {
 
-	protected $viewLayoutFactory;
+    protected $viewLayoutFactory;
+    protected $request;
 	
     public function __construct(Http $request,
         Context $context, 

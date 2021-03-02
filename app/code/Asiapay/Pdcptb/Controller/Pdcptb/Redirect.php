@@ -4,11 +4,11 @@ namespace Asiapay\Pdcptb\Controller\Pdcptb;
 
 use Magento\Framework\App\Action\Context;
 use Magento\Framework\App\ObjectManager;
-//use Magento\Framework\Controller\Result\RawFactory;
 use Magento\Framework\View\LayoutFactory;
-//use Magento\Framework\Controller\Result\RedirectFactory;
 use Magento\Framework\View\Result\PageFactory;
+use Magento\Framework\Controller\ResultFactory;
 use Asiapay\Pdcptb\Model\Pdcptb;
+use Magento\Framework\App\Request\Http;
 
 class Redirect extends AbstractPdcptb
 {
@@ -37,16 +37,19 @@ class Redirect extends AbstractPdcptb
      */
     protected $_modelPdcptb;
 
-    public function __construct(Context $context, 
-        //RawFactory $resultRawFactory, 
+    protected $request;
+
+    public function __construct(
+        Http $request,
+        Context $context, 
         LayoutFactory $viewLayoutFactory,
-        //RedirectFactory $resultRedirectFactory,
         PageFactory $resultPageFactory, 
         Pdcptb $modelPdcptb
         ){
-
+        
+        $this->request = $request;
+		$this->_resultFactory = $context->getResultFactory();
     	$this->_modelPdcptb = $modelPdcptb;
-        //$this->_resultRawFactory = $resultRawFactory;
         $this->_viewLayoutFactory = $viewLayoutFactory;
         $this->_resultRedirectFactory = $context->getResultRedirectFactory();
         $this->_resultPageFactory = $resultPageFactory;
@@ -59,42 +62,21 @@ class Redirect extends AbstractPdcptb
      */
     public function execute()
     {
-    	
 		$session = ObjectManager::getInstance()->get('Magento\Checkout\Model\Session');
 		
         $session->setPdcptbQuoteId($session->getQuoteId());
-        //$this->_resultRawFactory->create()->setContents($this->_viewLayoutFactory->create()->createBlock('Asiapay\Pdcptb\Block\Redirect')->toHtml());
         $session->unsQuoteId(); 
+		
+		$params = $this->_modelPdcptb->getCheckoutFormFields();
+		
+		$page = $this->_resultFactory->create(ResultFactory::TYPE_PAGE);
 
-        //get all parameters.. 
-        /*$param = [
-        'merchantid' => $this->getConfigData('merchant_id')
-        
-        ];*/
-        //echo $this->_modelPdcptb->getUrl();
-        $html = '<html><body>';
-        $html.= 'You will be redirected to the payment gateway in a few seconds.';
-        //$html.= $form->toHtml();
-        $html.= '<script type="text/javascript">
-require(["jquery", "prototype"], function(jQuery) {
-document.getElementById("pdcptb_checkout").submit();
-});
-</script>';
-        $html.= '</body></html>';
-        echo $html;
-        //$this->_modelPdcptb->getCheckoutFormFields();
-        //$this->resultPageFactory->create();
-        $params = $this->_modelPdcptb->getCheckoutFormFields();
-        //return $resultPage;
-        //sleep(25);
-        //echo "5 sec up. redirecting begin";
-        $result = $this->resultRedirectFactory->create();
-		//$result = $this->resultRedirectFactory;
-    	$result->setPath($this->_modelPdcptb->getUrl()."?".http_build_query($params));
-    	//echo($this->_modelPdcptb->getUrl().http_build_query($params));
-    	//return $result;
-        header('Refresh: 4; URL='.$this->_modelPdcptb->getUrl()."?".http_build_query($params));
-		//$this->_redirect($this->_modelPdcptb->getUrl(),$params);
-		//header('Refresh: 10; URL=https://test.paydollar.com/b2cDemo/eng/payment/payForm.jsp');
-    
-}}
+		/** @var Template $block */
+		$block = $page->getLayout()->getBlock('pdcptb.payfrom');
+		$block->setData('pay_url', $this->_modelPdcptb->getUrl());
+		$block->setData('pay_data', $params);
+
+        return $page;
+
+	}
+}

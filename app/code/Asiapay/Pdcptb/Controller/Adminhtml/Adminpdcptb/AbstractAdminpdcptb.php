@@ -21,6 +21,23 @@ abstract class AbstractAdminpdcptb extends \Magento\Backend\App\Action
         //parent::__construct($viewLayoutFactory);
     }
 
+	/** 
+	 * @inheritDoc
+	 */
+	public function createCsrfValidationException(
+		RequestInterface $request 
+	): ?InvalidRequestException {
+		return null;
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public function validateForCsrf(RequestInterface $request): ?bool
+	{
+		return true;
+	}
+
 	 
     protected $_viewLayoutFactory;
 

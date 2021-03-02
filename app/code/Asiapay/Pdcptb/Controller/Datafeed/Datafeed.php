@@ -23,6 +23,8 @@ class Datafeed extends AbstractDatafeed
 	protected $_invoiceService;
 	
 	protected $_transaction;
+
+	protected $request;
 	
 	public function __construct(Http $request,
         Context $context, 
@@ -41,22 +43,7 @@ class Datafeed extends AbstractDatafeed
 	{
 
 		//Receive POSTed variables from the gateway
-		/*$src = $_POST['src'];
-		$prc = $_POST['prc'];
-		$ord = $_POST['Ord'];
-		$holder = $_POST['Holder'];
-		$successCode = $_POST['successcode'];
-		$ref = $_POST['Ref'];
-		$payRef = $_POST['PayRef'];
-		$amt = $_POST['Amt'];
-		$cur = $_POST['Cur'];
-		$remark = $_POST['remark'];
-		$authId = $_POST['AuthId'];
-		$eci = $_POST['eci'];
-		$payerAuth = $_POST['payerAuth'];
-		$sourceIp = $_POST['sourceIp'];
-		$ipCountry = $_POST['ipCountry'];*/
-		
+				
 		$src = $this->request->getParam('src');
 		$prc = $this->request->getParam('prc');
 		$ord = $this->request->getParam('Ord');
@@ -86,53 +73,18 @@ class Datafeed extends AbstractDatafeed
 
 		date_default_timezone_set('Asia/Hong_Kong');
 		$phperrorPath = 'log'.$ord.'.txt';
-		/*error_log('['.date("F j, Y, g:i a e O").']'."src = ".$src." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."prc = ".$prc." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."ord = ".$ord." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."holder = ".$holder." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."successCode = ".$successCode." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."ref = ".$ref." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."payRef = ".$payRef." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."amt = ".$amt." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."cur = ".$cur." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."remark = ".$remark." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."authId = ".$authId." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."eci = ".$eci." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."payerAuth = ".$payerAuth." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."sourceIp = ".$sourceIp." \n", 3,  $phperrorPath);
-		error_log('['.date("F j, Y, g:i a e O").']'."ipCountry = ".$ipCountry." \n", 3,  $phperrorPath);
-		*/
-		//if(isset($_POST['secureHash'])){
 		if($this->request->getParam('secureHash')!=null){
 			$secureHash = $this->request->getParam('secureHash');
 		}else{
 			$secureHash = "";
 		}
-		//error_log('['.date("F j, Y, g:i a e O").']'."secureHash = ".$secureHash." \n", 3,  $phperrorPath);
-		//confirmation sent to the gateway to explain that the variables have been sent
-		//echo "OK! " . "Order Ref. No.: ". $ref . " | ";
-		/*
-		//Instantiate Mage_Sales_Model_Order class and load the order ID
-		//Note: increment ID is the system generated number per order by Magento 
-		*/
+		
 		$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-		//$orderId = $objectManager->create('\Magento\Checkout\Model\Session')->getLastOrderId();
-		/*$order_object = "";
-		if($orderId == $payRef){
-			$order_object = $objectManager->create('\Magento\Sales\Model\Order')->load($orderId);
-		}else{
-			//error.log(something);
-		}   */ 
-
-		//$order_object = $objectManager->create('\Magento\Sales\Model\Order')->load($ref);
+		
 		$order_object = $objectManager->create('\Magento\Sales\Model\Order')->loadByIncrementId($orderNumber);
 
-		//$order_object = Mage::getModel('sales/order')->load($payRef, 'increment_id');
-		 
 		$logger = $objectManager->create('\Psr\Log\LoggerInterface');
-		//$store_id = $order_object->getData('store_id');
-		//$store_id = $order_object->getStoreId();
-		//echo "orderId:".$orderId;
+		
 		$secureHashSecret = "";
 		if(!empty($orderNumber)){
 			$payment_method = $order_object->getPayment()->getMethodInstance();
@@ -148,12 +100,7 @@ class Datafeed extends AbstractDatafeed
 		/* convert currency type into numerical ISO code end*/
 			
 		//get grand total amount from Magento's sales order data for this order id (for comparison with the gateway's POSTed amount)
-		//$dbAmount = $order_object->getData('base_grand_total');
 		$dbAmount = sprintf('%.2f', $order_object->getBaseGrandTotal());
-
-
-
-		//$secureHashSecret = $payment_method->getConfigData('secure_hash_secret',$store_id);
 		
 		if(trim($secureHashSecret) != ""){	
 			$secureHashs = explode ( ',', $secureHash );
@@ -175,7 +122,8 @@ class Datafeed extends AbstractDatafeed
 				try {	
 					//update order status to processing
 						$comment = "Payment was Accepted. Payment Ref: " . $payRef ;
-						$order_object->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING)->save(); 
+						$order_object->setState(\Magento\Sales\Model\Order::STATE_PROCESSING); 
+						$order_object->setStatus(\Magento\Sales\Model\Order::STATE_PROCESSING); 
 						$order_object->addStatusToHistory(\Magento\Sales\Model\Order::STATE_PROCESSING, $comment, true)->save();
 						$orderCommentSender = $objectManager->create('Magento\Sales\Model\Order\Email\Sender\OrderCommentSender');
 						$orderCommentSender->send($order_object, $notify='1' , $comment);// $comment yout comment
@@ -219,13 +167,7 @@ class Datafeed extends AbstractDatafeed
 						}
 					
 				}
-				/*catch (Mage_Core_Exception $e) {
-					$error = $e;
-					//print_r($e);
-					Mage::log($error);
-					Mage::logException($e);
-				}*/
-				catch (Exception $e){
+				catch (\Exception $e){
 					echo $e->getMessage();
 				}
 				
@@ -253,11 +195,9 @@ class Datafeed extends AbstractDatafeed
 			}else{
 				//update order status to canceled
 				$comment = "Payment was Rejected. Payment Ref: " . $payRef ;	
-				//$order_object->setState(Mage_Sales_Model_Order::STATE_CANCELED, true, $comment, 0)->save();	
 				$order_object->cancel()->save();
-				//$order_object->sendOrderUpdateEmail(true, $comment);	//for sending order email update to customer
 				$order_object->addStatusToHistory(\Magento\Sales\Model\Order::STATE_CANCELED, $comment, true)->save();
-				echo "Order Status (cancelled) update successful";
+				echo "Order Status (cancelled) update successful ";
 				echo "Transaction Rejected / Failed.";
 			}	
 		}

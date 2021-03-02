@@ -29,16 +29,21 @@ class Query extends AbstractAdminpdcptb
      */
     protected $_helperData;
 
-    protected $request;
+	protected $request;
+	
+	protected $_logLoggerInterface;
 
     public function __construct(Http $request,
         Context $context,
-		LayoutFactory $viewLayoutFactory
+		LayoutFactory $viewLayoutFactory,
+		LoggerInterface $logger
 		)
     {
     	$this->request = $request;
 
-        $this->viewLayoutFactory = $viewLayoutFactory;
+		$this->viewLayoutFactory = $viewLayoutFactory;
+		
+		$this->_logLoggerInterface = $logger;
 
         //parent::__construct( $context, $viewLayoutFactory);
 		//parent::__construct( $context);
@@ -145,7 +150,7 @@ public function execute()
     	
     		
     	echo '<a href="' . $this->getUrl('sales/order/view/', ['order_id'=>$order_object->getId()]) . '">[ Go Back To Order Page ]</a>';
-    } catch (Exception $e) {
+    } catch (\Exception $e) {
 							$error = $e;
 							//print_r($e);
 							$this->_logLoggerInterface->debug($error);

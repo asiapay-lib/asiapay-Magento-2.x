@@ -10,14 +10,12 @@
 		<payment>
 			<pdcptb>
 				<active>1</active>
-				<!--<cctypes>VI,MC</cctypes>-->
 				<cgi_url>https://test.paydollar.com/b2cDemo/eng/payment/payForm.jsp</cgi_url>
 				<model>Asiapay\Pdcptb\Model\Pdcptb</model>
 				<order_status>1</order_status>
 				<title>AsiaPay's PayDollar - Client Post Through Browser Module </title>
 				<merchant_id/>
 				<allowspecific>0</allowspecific>
-				<memberpay>F</memberpay>
 				<pay_type>N</pay_type>
 				<api_url>https://test.paydollar.com/b2cDemo/eng/merchant/api/orderApi.jsp</api_url>
 			</pdcptb>

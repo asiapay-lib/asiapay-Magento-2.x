@@ -19,12 +19,10 @@ use Magento\Framework\View\LayoutFactory;
 use Magento\Payment\Helper\Data as HelperData;
 use Magento\Payment\Model\Method\AbstractMethod;
 use Magento\Payment\Model\Method\Logger;
-//use Magento\Sales\Model\Invoice\Payment as InvoicePayment;
-//use Magento\Sales\Model\Service\InvoiceService;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Payment;
-use Magento\Framework\Event\Observer;
-//use Magento\Store\Model\StoreManagerInterface;
+use Magento\SalesRule\Model\Coupon;
+use Magento\SalesRule\Model\Rule;
 
 class Pdcptb extends AbstractMethod
 {
@@ -35,12 +33,15 @@ class Pdcptb extends AbstractMethod
     protected $_storeManager;
     protected $_urlInterface;
     protected $orderRepository;
+    protected $coupon;
+    protected $salesRule;
 
     public function __construct(Context $context, 
+    	Coupon $coupon,
+		Rule $salesRule, 
         Registry $registry, 
         ExtensionAttributesFactory $extensionFactory, 
         AttributeValueFactory $customAttributeFactory, 
-        Observer $eventObserver,
         HelperData $paymentData, 
         ScopeConfigInterface $scopeConfig, 
         Logger $logger, 
@@ -48,19 +49,17 @@ class Pdcptb extends AbstractMethod
         LayoutFactory $viewLayoutFactory, 
         AbstractResource $resource = null, 
         AbstractDb $resourceCollection = null, 
-        
-        //StoreManagerInterface $storeManager,
         array $data = [])
     {
         $this->_modelOrder = $modelOrder;
         $this->_viewLayoutFactory = $viewLayoutFactory;
 		$this->_logger = $logger;
 		$this->_paymentData = $paymentData;
-		$this->_eventObserver = $eventObserver;
-		//$this->_storeManager=$storeManager;
 		$this->_urlInterface = \Magento\Framework\App\ObjectManager::getInstance()->get('Magento\Framework\UrlInterface');
-
 		$this->orderRepository = \Magento\Framework\App\ObjectManager::getInstance()->get('\Magento\Sales\Api\OrderRepositoryInterface');
+
+		$this->coupon = $coupon;
+        $this->salesRule = $salesRule;
 
         parent::__construct($context, $registry, $extensionFactory, $customAttributeFactory, $paymentData, $scopeConfig, $logger, $resource, $resourceCollection, $data);
         
@@ -72,17 +71,15 @@ class Pdcptb extends AbstractMethod
 
     protected $_code  = 'pdcptb';
     protected $_formBlockType = 'Asiapay\Pdcptb\Block\PdcptbForm';
-    protected $_allowCurrencyCode = ['HKD','USD','SGD','CNY','JPY','TWD','AUD','EUR','GBP','CAD','MOP','PHP','THB','MYR','IDR','KRW','SAR','NZD','AED','BND'];
+    protected $_allowCurrencyCode = ['HKD','USD','SGD','CNY','JPY','TWD','AUD','EUR','GBP','CAD','MOP','PHP','THB','MYR','IDR','KRW','SAR','NZD','AED','BND','VND'];
     
 	public function getUrl()
     {
     	$url = $this->getConfigData('cgi_url');
-    	//echo "no1".$url;
     	if(!$url)
     	{
     		$url = self::CGI_URL_TEST;
     	}
-    	//echo "no2".$url;
     	return $url;
     }
     /**
@@ -113,27 +110,67 @@ class Pdcptb extends AbstractMethod
     {
         return $this->getCheckout()->getQuote();
     }
+
+	public function retrieveLocale() {
+		/** @var \Magento\Framework\ObjectManagerInterface $om */
+		$om = \Magento\Framework\App\ObjectManager::getInstance();
+		/** @var \Magento\Framework\Locale\Resolver $resolver */
+		$resolver = $om->get('Magento\Framework\Locale\Resolver');
+		$templang = $resolver->getLocale();
+
+		//output to text file to check language code
+			// $file = fopen("test.txt","w");
+			// echo fwrite($file, $templang);
+			// fclose($file);
+		//Returns language code for PayDollar/PesoPay/SiamPay
+		//Chinese - Simplified
+		if($templang == 'zh_Hans_CN'){
+			return 'X';
+		}
+		//Japanese
+		else if($templang == 'ja_JP'){
+			return 'J';
+		}
+		//Korean
+		else if($templang == 'ko_KR'){
+			return 'K';
+		}
+		//Chinese - Traditional
+		else if($templang == 'zh_Hant_HK' || $templang == 'zh_Hant_TW' || $templang == 'zh_TW' ){
+			return 'C';
+		}
+		//Thai
+		else if($templang == 'th_TH'){
+			return 'T';
+		}
+		//German
+		else if($templang == 'de_DE'){
+			return 'G';
+		}
+		//French
+		else if($templang == 'fr_FR'){
+			return 'F';
+		}
+		//Russian
+		else if($templang == 'ru_RU'){
+			return 'R';
+		}
+		//Vietnamese
+		else if($templang == 'vi_VN'){
+			return 'V';
+		}	
+		//Spanish
+		else if($templang == 'es_ES'){
+			return 'S';
+		}
+		else
+		//English for other countries
+			return 'E';
+	}
     
     public function getCheckoutFormFields()
 	{
-		//for Magento v1.3.x series
-		/*
-		$a = $this->getQuote()->getShippingAddress();
-		$b = $this->getQuote()->getBillingAddress();
-		$currency_code = $this->getQuote()->getBaseCurrencyCode();
-		$cost = $a->getBaseSubtotal() - $a->getBaseDiscountAmount();
-		$shipping = $a->getBaseShippingAmount();
 		
-		$_shippingTax = $this->getQuote()->getShippingAddress()->getBaseTaxAmount();
-		$_billingTax = $this->getQuote()->getBillingAddress()->getBaseTaxAmount();
-		$tax = sprintf('%.2f', $_shippingTax + $_billingTax);
-		$cost = sprintf('%.2f', $cost + $tax);
-		*/
-		
-		//for Magento v1.5.x
-		/*$order = $this->getOrder();*/
-		
-		//for Magento v1.6.x series
 		$order = $this->_modelOrder;
 		$order->loadByIncrementId($this->getCheckout()->getLastRealOrderId());
         
@@ -144,11 +181,19 @@ class Pdcptb extends AbstractMethod
 		
 		$gatewayLanguage = substr($this->getConfigData('gateway_language'), 0, 1);
 		
-		if (preg_match("/^[CEXKJcexkj]/", $gatewayLanguage, $matches)){
-			$lang = strtoupper($matches[0]);
-		}else{
-			$lang = 'C';
+		$gatewayLanguage = preg_replace('/\s+/', '', $gatewayLanguage);
+		
+		if(empty($gatewayLanguage)){
+			$lang = $this->retrieveLocale();
 		}
+		else{
+			if (preg_match("/^[TGFRVSCEXKJcexkjtgfrvs]/", $gatewayLanguage, $matches)){
+				$lang = strtoupper($matches[0]);
+			}else{
+				$lang = 'C';
+			}
+		}
+
 		$orderReferencePrefix = trim($this->getConfigData('order_reference_no_prefix'));
 		
 		if (is_null($orderReferencePrefix) || $orderReferencePrefix == ''){
@@ -162,19 +207,10 @@ class Pdcptb extends AbstractMethod
 		$merchantId = $this->getConfigData('merchant_id');
 		$paymentType = $this->getConfigData('pay_type');
 		$secureHashSecret = $this->getConfigData('secure_hash_secret');
+		$installment_service = $this->getConfigData('installment_service');
+		$installment_only = $this->getConfigData('installment_only');
 
-		//$order = $this->_eventObserver->getOrder();
-		//$order_id = $order->getIncreamentId();
-		//$this->_logger->info($order_id);
-		//$product_id = $this->_eventObserver->getProduct()->getId();
-		//echo $product_id;
-		//$this->getUrl();
-		//echo "this is the merchant id " . $merchantId;
 
-		/* memberpay start */
-		$memberpay_service = $this->getConfigData('memberpay');
-		$memberpay_memberid = '';
-		$memberPay_email = '';
 		$customer_acctAgeInd = "01";
 		$customer_acctAuthMethod = "01"; // as guest
 		$customer_acctAuthDate = "";
@@ -195,24 +231,23 @@ class Pdcptb extends AbstractMethod
 		$customer_city = $customer_bill_city = $shipData['city'];
 		$customer_postcode = $shipData['postcode'];
 
-		if (/*Mage::app()->isInstalled() && */ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->isLoggedIn()) {            
-			$memberpay_memberid = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getEmail();
-			$memberPay_email = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getEmail();
+		if (!$order->getCustomerIsGuest()) {
+			$member_email = $order->getCustomerEmail();
 
 			//billing address
 
-			$customer_bill_phonenum = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryBillingAddress()->getTelephone();
+			$customer_bill_phonenum = $order->getBillingAddress()->getTelephone();
 			$customer_bill_phonenum = preg_replace('/\D/', '', $customer_bill_phonenum);
-			$customer_bill_countryID = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryBillingAddress()->getCountryId();
+			$customer_bill_countryID = $order->getBillingAddress()->getCountryId();
 			$customer_bill_phonecountryCode = ObjectManager::getInstance()->get('Asiapay\Pdcptb\Helper\Data')->getphonecode($customer_bill_countryID);
 			$customer_bill_countryCode = ObjectManager::getInstance()->get('Asiapay\Pdcptb\Helper\Data')->getCountryCodeNumeric($customer_bill_countryID);
-			$customer_bill_street = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryBillingAddress()->getStreet();
+			$customer_bill_street = $order->getBillingAddress()->getStreet();
 
 			$customer_bill_street0 = (array_key_exists(0, $customer_bill_street))?$customer_bill_street[0]:'';	
 			$customer_bill_street1 = (array_key_exists(1, $customer_bill_street))?$customer_bill_street[1]:'';	
 			$customer_bill_street2 = (array_key_exists(2, $customer_bill_street))?$customer_bill_street[2]:'';	
-			$customer_bill_city = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryBillingAddress()->getCity();
-			$customer_postcode = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryBillingAddress()->getPostcode();
+			$customer_bill_city = $order->getBillingAddress()->getCity();
+			$customer_postcode = $order->getBillingAddress()->getPostcode();
 
 			//account info related
 			$customer_acct_createdate = date('Ymd' ,ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getCreatedAtTimestamp());
@@ -221,7 +256,7 @@ class Pdcptb extends AbstractMethod
 
 			$customer_acct_ageind =$this->getAcctAgeInd($customer_daydiff);
 
-			$diffAdd = $this->getDiffBillShipAddress();
+			$diffAdd = $this->getDiffBillShipAddress($order);
 
 			if($diffAdd == "T")
 				$shippingDetl = "01"; // Ship to cardholder’s billing address
@@ -234,10 +269,9 @@ class Pdcptb extends AbstractMethod
 			$customer_acctAuthMethod = "02"; // Login to the cardholder account at the merchant system using merchant‘s own credentials
 
 			$authdate = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getData('updated_at');
-			// $customer_acctAuthDate = gmdate("Ymd H:i:s", time());
 
 			$customer_acctAuthDate = gmdate("Ymd" , strtotime($authdate));
-			// $this->getCustomerData();
+			
         }else{
         	$diffAdd = "T";
         	$shippingDetl = "01";// Ship to cardholder’s billing address
@@ -250,16 +284,9 @@ class Pdcptb extends AbstractMethod
         $txnType = $this->getConfigData('three_ds_transtype');
 
         $threedschallengepref = $this->getConfigData('three_ds_challenge_preference');
-        //echo $memberPay_email;
-		/* memberpay end */
-
-		/*echo "URL BASE = ".$this->_storeManager->getStore()
-           ->getUrl('pdcptb/pdcptb/success');*/
            
 		$fields = [
 			'merchantId'				=> $merchantId,
-			//for Magento v1.3.x series
-			//'amount'					=> sprintf('%.2f', $cost + $shipping),
 			'amount'					=> $grandTotalAmount, 
 			'currCode'					=> $cur,
 			'orderRef'					=> $orderReferenceValue,
@@ -270,9 +297,6 @@ class Pdcptb extends AbstractMethod
 			'payMethod'					=> 'ALL',
 			'payType'					=> $paymentType,
 			'secureHash'				=> $this->generatePaymentSecureHash($merchantId, $orderReferenceValue, $cur, $grandTotalAmount, $paymentType, $secureHashSecret),
-			'memberPay_service'			=> $memberpay_service,
-			'memberPay_memberId'		=> $memberpay_memberid,
-			'memberPay_email'			=> $memberPay_email,
 			'failRetry'					=> 'no',
 
 
@@ -352,6 +376,39 @@ class Pdcptb extends AbstractMethod
 				
 		];
 
+		// get coupon info (paydollar)
+		$couponCode = $order->getCouponCode();
+        if(isset($couponCode) && ($couponCode)) {
+            $ruleId =  $this->coupon->loadByCode($couponCode)->getRuleId();
+            $rule = $this->salesRule->load($ruleId);
+            $paydollarPromotionEnabled = $rule->getData('asiapay_promotion_enable');
+            $paydollarPromotionCode = $rule->getData('asiapay_promotion_code');
+            $paydollarPromotionRuleCode = $rule->getData('asiapay_promotion_rule_code');
+		}
+		
+		// if coupon for order is paydollar promotion, add promotion data to fields.
+        if(isset($paydollarPromotionEnabled) && ($paydollarPromotionEnabled == 1)) {
+            //PROMOTION
+            $fields += [
+                'promotion'			=> "T", //T
+                'promotionCode'		=> isset($paydollarPromotionCode) ? $paydollarPromotionCode : null,
+                'promotionRuleCode'	=> isset($paydollarPromotionRuleCode) ? $paydollarPromotionRuleCode : null
+            ];
+        }else{
+			if(isset($installment_service) && !empty($installment_service)){
+				$fields += [
+					'installment_service'	=> $installment_service
+				];
+			}
+			if(isset($installment_only) && !empty($installment_only)){
+				$fields += [
+					'installOnly'			=> $installment_only
+				];
+			}
+			
+		}
+
+
 
 		// echo "<pre>";
 		
@@ -365,21 +422,10 @@ class Pdcptb extends AbstractMethod
             $value = str_replace("&","and",$v);
             $filtered_fields[$k] =  $value;
         }
-        // echo $this->getUrl()."?".http_build_query($filtered_fields);
-        // exit;
+
         return $filtered_fields;
 	}
 
-	public function getProduct()
-    {
-
-        $product_id = $this->_eventObserver->getProduct()->getId();
-        $this->logger->info($product_id);
-        /*$objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-        $product = $objectManager->get('Magento\Catalog\Model\Product')->load($product_id);
-        $this->logger->info('Product Info', $product->getData());*/
-
-    }
     public function getIsoCurrCode($magento_currency_code) {
 		switch($magento_currency_code){
 		case 'HKD':
@@ -490,15 +536,10 @@ class Pdcptb extends AbstractMethod
     {
        return $this;
     }
-
-    /*public function onInvoiceCreate(InvoiceService $payment)
-    {
-		return $this;
-    }*/
 	
     public function getOrderPlaceRedirectUrl()
     {
-          return Pdcptb::getUrl('pdcptb/pdcptb/sss');
+          return Pdcptb::getUrl('pdcptb/pdcptb/redirect');
     }
 
     public function getDateDiff($d){
@@ -528,6 +569,7 @@ class Pdcptb extends AbstractMethod
 				break;	
     		default:
     			# code...
+    			$ret = "01"	;
     			break;
     	}
     	return $ret;
@@ -535,40 +577,47 @@ class Pdcptb extends AbstractMethod
     }
 
     public function getDiffBillShipAddress(){
-    		$txtRet = "F";
+		$txtRet = "F";
+		
+		$order = $this->_modelOrder;
+		$order_information = $order->loadByIncrementId($this->getCheckout()->getLastRealOrderId());
 
-    		$shipData = $this->getCustomerShippingData();
+		$shipData = $this->getCustomerShippingData();
 
-			$customer_ship_countryCode = ObjectManager::getInstance()->get('Asiapay\Pdcptb\Helper\Data')->getCountryCodeNumeric($shipData['country_id']);
+		$customer_ship_countryCode = ObjectManager::getInstance()->get('Asiapay\Pdcptb\Helper\Data')->getCountryCodeNumeric($shipData['country_id']);
 
-			$customer_ship_street = (is_array($shipData['street']))? $shipData['street']:explode("\n", $shipData['street']);
+		$customer_ship_street = (is_array($shipData['street']))? $shipData['street']:explode("\n", $shipData['street']);
 
-			$customer_ship_street0 = (array_key_exists(0, $customer_ship_street))?$customer_ship_street[0]:'';	
+		$customer_ship_street0 = (array_key_exists(0, $customer_ship_street))?$customer_ship_street[0]:'';	
 
-			$customer_ship_street1 = (array_key_exists(1, $customer_ship_street))?$customer_ship_street[1]:'';	
-						
-			$customer_ship_street2 = (array_key_exists(2, $customer_ship_street))?$customer_ship_street[2]:'';
+		$customer_ship_street1 = (array_key_exists(1, $customer_ship_street))?$customer_ship_street[1]:'';	
+					
+		$customer_ship_street2 = (array_key_exists(2, $customer_ship_street))?$customer_ship_street[2]:'';
+		
+		$isLoggedIn = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->isLoggedIn();
 
 
-    		$b1 = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getDefaultBillingAddress()->getStreet();
+		$b1 = $order_information->getBillingAddress()->getStreet();
 
-    		$b2 = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getDefaultShippingAddress()->getCity();
+		$b2 = $order_information->getBillingAddress()->getCity();
 
-			$b3 = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getDefaultShippingAddress()->getPostcode();
+		$b3 = $order_information->getBillingAddress()->getPostcode();
 
-    		$s1 = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getDefaultShippingAddress()->getStreet();
+		$shippingAddress = $order_information->getShippingAddress();
 
-    		$s2 = $shipData['city'];
+		$s1 = isset($shippingAddress)&&$isLoggedIn?$shippingAddress->getStreet():"";
 
-			$s3 = $shipData['postcode'];
+		$s2 = $shipData['city'];
 
-			if($b1 == $s1 && $b2 == $s2 && $b3 == $s3){
-				$txtRet = "T";
-			}
+		$s3 = $shipData['postcode'];
 
-			return $txtRet;
+		if($b1 == $s1 && $b2 == $s2 && $b3 == $s3){
+			$txtRet = "T";
+		}
 
-    }
+		return $txtRet;
+
+	}
 
 
     public function getCustomerAllOrdersComplete(){
@@ -602,57 +651,26 @@ class Pdcptb extends AbstractMethod
     public function getCustomerShippingData(){
     	$shipping_data = array();
     	$order = $this->_modelOrder;
-		$order->loadByIncrementId($this->getCheckout()->getLastRealOrderId());
 		$order_information = $order->loadByIncrementId($this->getCheckout()->getLastRealOrderId());
-		$a = $order_information->getShippingAddress();
-		// print_r($a);
-		// echo count($a);
-		if($a){
-			// echo 1;
-			$shipping_data = $a->getData();
+		$shippingAddress = $order_information->getShippingAddress();
+		
+		if(isset($shippingAddress)){
+			$shipping_data = $shippingAddress->getData();
 		}else{
-			// echo 123;
-			$shipping_data['telephone'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryShippingAddress()->getTelephone();
+			$shipping_data['telephone'] = "";
 
-			$shipping_data['country_id'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryShippingAddress()->getCountryId();
-			$customer_ship_countryCode = ObjectManager::getInstance()->get('Asiapay\Pdcptb\Helper\Data')->getCountryCodeNumeric($shipping_data['country_id']);
-
-			$shipping_data['street'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getDefaultShippingAddress()->getStreet();
+			$shipping_data['country_id'] = "";
+			$shipping_data['street'] = "";
 			
-			$arrSt = $shipping_data['street'];
 
-			// print_r($arrSt);
+			$shipping_data['city'] = "";
 
-			$customer_ship_street0 = (array_key_exists(0, $arrSt))?$arrSt[0]:'';	
-
-			$customer_ship_street1 = (array_key_exists(1, $arrSt))?$arrSt[1]:'';	
-						
-			$customer_ship_street2 = (array_key_exists(2, $arrSt))?$arrSt[2]:'';
-
-			$shipping_data['city'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryShippingAddress()->getCity();
-
-			$shipping_data['postcode'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getPrimaryShippingAddress()->getPostcode();
+			$shipping_data['postcode'] = "";
 
 			$shipping_data['email'] = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getEmail();
 		}
-		// if()
-		// $shipping_data = $order_information->getShippingAddress()->getData();
-		// echo "<pre>";
-		// 		print_r($shipping_data);
+
 		return $shipping_data;
     }
-
-    public function getCustomerData(){
-    	$customerData = ObjectManager::getInstance()->get('Magento\Customer\Model\Session')->getCustomer()->getData();
-    	echo "<pre>";
-    	print_r($customerData);
-    	// print_r($customer->getData('updated_at'));
-		// $logCustomer = ObjectManager::getInstance()->get('Magento\Customer\Model\log')->loadByCustomer($customer);
-		// $lastVisited = $logCustomer->getLoginAtTimestamp();
-		// $lastVisited = date('Y-m-d H:i:s', $lastVisited);
-		// echo $lastVisited;
-		// return $customerData->getData('updated_at');
-    }
-
 
 }
