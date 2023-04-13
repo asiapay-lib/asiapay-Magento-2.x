@@ -194,7 +194,7 @@ class Pdcptb extends AbstractMethod
 			}
 		}
 
-		$orderReferencePrefix = trim($this->getConfigData('order_reference_no_prefix'));
+		$orderReferencePrefix = trim($this->getConfigData('order_reference_no_prefix') ?? '' );
 		
 		if (is_null($orderReferencePrefix) || $orderReferencePrefix == ''){
 			$orderReferenceValue = $this->getCheckout()->getLastRealOrderId();
