@@ -179,7 +179,10 @@ class Pdcptb extends AbstractMethod
 		
 		$grandTotalAmount = sprintf('%.2f', $order->getBaseGrandTotal());  
 		
-		$gatewayLanguage = substr($this->getConfigData('gateway_language'), 0, 1);
+		$gatewayLanguage = $this->getConfigData('gateway_language');
+		if(!empty($gatewayLanguage)){
+			$gatewayLanguage = substr($gatewayLanguage, 0, 1);
+		}
 		
 		$gatewayLanguage = preg_replace('/\s+/', '', $gatewayLanguage);
 		
